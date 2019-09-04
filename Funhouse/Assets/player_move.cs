@@ -73,6 +73,7 @@ public class player_move : MonoBehaviour
     {
         Debug.Log(moveY);
 
+
         if (Input.GetKeyDown(GameManager.GM.check) && waitfortext == true)
             {
             TypeWriterEffect Typescript = typewriterbox.GetComponent<TypeWriterEffect>();
@@ -295,14 +296,16 @@ public class player_move : MonoBehaviour
         if(moveY != 0 && ladderaccess == true)
         {
             onladder = true;
-            //set horizontal velocity to zero and allow vertical movement
-            gameObject.GetComponent<Rigidbody2D>().velocity = new Vector2(0, moveY * playerspeed * 0.5f);
         }
 
-        if (onladder == true &&  isGrounded!=true)
+        //if (onladder == true &&  isGrounded!=true)
+        if(onladder == true)
         {
+            //alloow vertical movement
+            gameObject.GetComponent<Rigidbody2D>().velocity = new Vector2(0, moveY * playerspeed * 0.5f);
+
             //if you're on the ladder, snap xposition to center of ladder
-            if(transform.position.x > ladderX || transform.position.x < ladderX)
+            if (transform.position.x > ladderX || transform.position.x < ladderX)
             {
                 newposition = new Vector2 (ladderX, transform.position.y);
                 transform.position = newposition;
@@ -364,6 +367,33 @@ public class player_move : MonoBehaviour
                 isGrounded = true;
             }
         }
+        RaycastHit2D[] hitL;
+        hitL = Physics2D.RaycastAll(transform.position + new Vector3(-7, -16, 0), Vector2.down, 1.0f);
+        // you can increase RaycastLength and adjust direction for your case
+        foreach (var hitedL in hitL)
+        {
+            if (hitedL.collider.gameObject == gameObject) //Ignore my character
+                continue;
+            // Don't forget to add tag to your ground
+            if (hitedL.collider.gameObject.tag == "ground")
+            { //Change it to match ground tag
+                isGrounded = true;
+            }
+        }
+        RaycastHit2D[] hitR;
+        hitR = Physics2D.RaycastAll(transform.position + new Vector3(7, -16, 0), Vector2.down, 1.0f);
+        // you can increase RaycastLength and adjust direction for your case
+        foreach (var hitedR in hitR)
+        {
+            if (hitedR.collider.gameObject == gameObject) //Ignore my character
+                continue;
+            // Don't forget to add tag to your ground
+            if (hitedR.collider.gameObject.tag == "ground")
+            { //Change it to match ground tag
+                isGrounded = true;
+            }
+        }
+
     }
 
     void OnTriggerEnter2D(Collider2D trig)
@@ -839,7 +869,7 @@ public class player_move : MonoBehaviour
         //jumpingcode
         GetComponent<Rigidbody2D>().AddForce(Vector2.up * playerjumppower);
         //isGrounded = false;
-        onladder = false;
+        //onladder = false;
 
     }
     void FlipPlayer()

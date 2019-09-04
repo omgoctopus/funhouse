@@ -12,6 +12,7 @@ TagManager:
   - laddertop
   - door
   - pause
+  - slope
   layers:
   - Default
   - TransparentFX
@@ -21,7 +22,7 @@ TagManager:
   - UI
   - 
   - 
-  - 
+  - slopecollider
   - 
   - 
   - 
