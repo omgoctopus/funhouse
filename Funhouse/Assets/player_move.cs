@@ -11,6 +11,7 @@ public class player_move : MonoBehaviour
     private bool readyforbluetriangle = false, readyforredsquare=false, readyforyellowsquare=false, readyfororangesquare=false;
     private bool redplaced = false, orangeplaced = false, yellowplaced = false;
     public int playerjumppower = 1250;
+    private float idlemove = 0.005f;
     public float moveX, moveY, ladderX;
     public bool isGrounded, ladderaccess, onladder, readytodismount, readyfordoor;
     public float timeuntildismount = 0.12f;
@@ -71,8 +72,6 @@ public class player_move : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        Debug.Log(moveY);
-
 
         if (Input.GetKeyDown(GameManager.GM.check) && waitfortext == true)
             {
@@ -92,7 +91,8 @@ public class player_move : MonoBehaviour
         GroundedUpdater();
 
         //pause
-        if (Input.GetKeyDown(GameManager.GM.pause))
+        // added if waitforcaommnd != true, waitfortext !=true to try and remove issue  where player can pause during dialogue
+        if (waitforcommand != true && waitfortext != true && Input.GetKeyDown(GameManager.GM.pause))
         {
             pausegame();
         }
@@ -129,6 +129,7 @@ public class player_move : MonoBehaviour
             Time.timeScale = 0;
             isPaused = true;
             showPaused();
+            Debug.Log("cursor start at"+ currentposition);
         }
     }
 
@@ -280,11 +281,11 @@ public class player_move : MonoBehaviour
 
         //animations
         //player direction
-        if (moveX < 0.0f && facingright == false)
+        if (moveX < -0.02f && facingright == false)
         {
             FlipPlayer();
         }
-        else if (moveX > 0.0f && facingright == true)
+        else if (moveX > 0.02f && facingright == true)
         {
             FlipPlayer();
         }
@@ -292,8 +293,16 @@ public class player_move : MonoBehaviour
         if(onladder!=true)
         gameObject.GetComponent<Rigidbody2D>().velocity = new Vector2(moveX * playerspeed, gameObject.GetComponent<Rigidbody2D>().velocity.y);
 
+        //add idle movement to wakeup physics engine for ontriggerstay
+        if(onladder!=true && gameObject.GetComponent<Rigidbody2D>().velocity==new Vector2(0,0))
+        {         
+            Debug.Log("idling");
+            gameObject.GetComponent<Rigidbody2D>().velocity = new Vector2(idlemove * playerspeed, gameObject.GetComponent<Rigidbody2D>().velocity.y);
+            idlemove = idlemove * -1;
+        }
+
         //ladder movement
-        if(moveY != 0 && ladderaccess == true)
+        if (moveY != 0 && ladderaccess == true)
         {
             onladder = true;
         }
@@ -366,6 +375,11 @@ public class player_move : MonoBehaviour
             { //Change it to match ground tag
                 isGrounded = true;
             }
+            //if you are not currently climbing ladder, the ladder tops should 'ground' the character
+            if (hited.collider.gameObject.tag == "laddertop" && onladder != true)
+            { //Change it to match ground tag
+                isGrounded = true;
+            }
         }
         RaycastHit2D[] hitL;
         hitL = Physics2D.RaycastAll(transform.position + new Vector3(-7, -16, 0), Vector2.down, 1.0f);
@@ -379,6 +393,11 @@ public class player_move : MonoBehaviour
             { //Change it to match ground tag
                 isGrounded = true;
             }
+            //if you are not currently climbing ladder, the ladder tops should 'ground' the character
+            if (hitedL.collider.gameObject.tag == "laddertop" && onladder!=true)
+            { //Change it to match ground tag
+                isGrounded = true;
+            }
         }
         RaycastHit2D[] hitR;
         hitR = Physics2D.RaycastAll(transform.position + new Vector3(7, -16, 0), Vector2.down, 1.0f);
@@ -389,6 +408,11 @@ public class player_move : MonoBehaviour
                 continue;
             // Don't forget to add tag to your ground
             if (hitedR.collider.gameObject.tag == "ground")
+            { //Change it to match ground tag
+                isGrounded = true;
+            }
+            //if you are not currently climbing ladder, the ladder tops should 'ground' the character
+            if (hitedR.collider.gameObject.tag == "laddertop" && onladder != true)
             { //Change it to match ground tag
                 isGrounded = true;
             }
@@ -855,11 +879,6 @@ public class player_move : MonoBehaviour
             //Debug.Log("collide with top and on ladder");
             //turn off collisions between player and top of ladder
             Physics2D.IgnoreCollision(col.gameObject.GetComponent<Collider2D>(), GetComponent<Collider2D>());
-        }
-        if (col.gameObject.tag == "laddertop" && onladder == false)
-        {
-            //Debug.Log("collide with top and off ladder");
-            
         }
     }
 
