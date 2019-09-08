@@ -11,8 +11,7 @@ public class player_move : MonoBehaviour
     private bool readyforbluetriangle = false, readyforredsquare=false, readyforyellowsquare=false, readyfororangesquare=false;
     private bool redplaced = false, orangeplaced = false, yellowplaced = false;
     public int playerjumppower = 1250;
-    private float idlemove = 0.005f;
-    public float moveX, moveY, ladderX;
+    public float moveX, moveY, ladderX, menumoveX, menumoveY;
     public bool isGrounded, ladderaccess, onladder, readytodismount, readyfordoor;
     public float timeuntildismount = 0.12f;
     private float leaveladdertimer = 0.0f;
@@ -21,7 +20,7 @@ public class player_move : MonoBehaviour
     public GameObject dialoguebox, door3spritelocked, door3spriteunlocked, door7spritelocked, door7spriteunlocked;
     public GameObject typewriterbox;
     private GameObject menuicon;
-    public bool waitforcommand = false, readyforcursormovement = false;
+    public bool waitforcommand = false, readyforcursormovement = false, readytotalk=true;
     public bool waitfortext = false;
     bool isPaused = false;
     GameObject[] pauseObjects;
@@ -73,7 +72,7 @@ public class player_move : MonoBehaviour
     void Update()
     {
 
-        if (Input.GetKeyDown(GameManager.GM.check) && waitfortext == true)
+        if (Input.GetKeyDown(GameManager.GM.check) && waitfortext == true && readytotalk==true)
             {
             TypeWriterEffect Typescript = typewriterbox.GetComponent<TypeWriterEffect>();
             Debug.Log(Typescript.fullText);
@@ -81,7 +80,7 @@ public class player_move : MonoBehaviour
             dialoguebox.gameObject.SetActive(true);
             dialoguebox.gameObject.GetComponent<Text>().text = Typescript.fullText;
             typewriterbox.gameObject.SetActive(false);
-            Invoke("ready", 0.5f);
+            Invoke("ready", 0.4f);
             Debug.Log("ready invoked");
         }
 
@@ -140,35 +139,40 @@ public class player_move : MonoBehaviour
             Invoke(inventory[j], 0.0f);
         }
 
-
-        moveX = Input.GetAxis(GameManager.GM.Horizontal);
+        //note: GetAxisRaw is not affected by timescale. That's why it's used in pause menu
+        menumoveX = Input.GetAxisRaw(GameManager.GM.Horizontal);
         //these lines allow player to use keys or buttons if they prefer
         if (Input.GetKey(GameManager.GM.right))
-        { moveX = 1;
-            Debug.Log("moveX =" +moveX);
+        { menumoveX = 1;
+            Debug.Log("menumoveX =" +menumoveX);
             Debug.Log("ready for cursor movement =" + readyforcursormovement);
         }
 
         if (Input.GetKey(GameManager.GM.left))
         {
-            moveX = -1;
+            menumoveX = -1;
         }
 
         //up-down controls
-        moveY = Input.GetAxis(GameManager.GM.Vertical);
+        menumoveY = Input.GetAxisRaw(GameManager.GM.Vertical);
 
         if (Input.GetKey(GameManager.GM.up))
-        { moveY = 1; }
+        { menumoveY = 1; }
 
         if (Input.GetKey(GameManager.GM.down))
         {
-            moveY = -1;
+            menumoveY = -1;
         }
 
-        if (moveX == 0 && moveY == 0)
+        if (menumoveX == 0 && menumoveY == 0)
             readyforcursormovement = true;
 
-        if (moveX > 0.2 && readyforcursormovement == true)
+        if(readyforcursormovement==false)
+        {
+            Debug.Log("menumoveX=" + menumoveX + " menumoveY=" + menumoveY);
+        }
+
+        if (menumoveX > 0.2 && readyforcursormovement == true)
         {
             Debug.Log("right key registered");
             currentposition = currentposition + 1;
@@ -183,7 +187,7 @@ public class player_move : MonoBehaviour
             inventorycursor.transform.localPosition = slotlocation[j];
             readyforcursormovement = false;
         }
-        if (moveX < -0.2 && readyforcursormovement == true)
+        if (menumoveX < -0.2 && readyforcursormovement == true)
         {
             Debug.Log("left key registered");
             currentposition = currentposition - 1;
@@ -210,6 +214,8 @@ public class player_move : MonoBehaviour
             dialoguebox.gameObject.SetActive(false);
             typewriterbox.gameObject.SetActive(false);
             waitforcommand = false;
+            readytotalk = false;
+            Invoke("talkcooldown", 0.4f);
         }
     }
 
@@ -239,6 +245,11 @@ public class player_move : MonoBehaviour
         Time.timeScale = 0;
         waitfortext = false;
         waitforcommand = true;
+    }
+
+    void talkcooldown()
+    {
+        readytotalk = true;
     }
 
     void PlayerMove()
@@ -295,10 +306,9 @@ public class player_move : MonoBehaviour
 
         //add idle movement to wakeup physics engine for ontriggerstay
         if(onladder!=true && gameObject.GetComponent<Rigidbody2D>().velocity==new Vector2(0,0))
-        {         
-            Debug.Log("idling");
-            gameObject.GetComponent<Rigidbody2D>().velocity = new Vector2(idlemove * playerspeed, gameObject.GetComponent<Rigidbody2D>().velocity.y);
-            idlemove = idlemove * -1;
+        {
+            GetComponent<Rigidbody2D>().AddForce(Vector2.up * .01f);
+
         }
 
         //ladder movement
@@ -694,27 +704,31 @@ public class player_move : MonoBehaviour
         //if player is in NPC1 trig zone
         if (trig.name == "NPC1")
         {
-            if (Input.GetKeyUp(GameManager.GM.check) && waitforcommand == false && waitfortext == false && isPaused == false)
+            if (Input.GetKeyDown(GameManager.GM.check) && waitforcommand == false && waitfortext == false && isPaused == false && readytotalk==true)
             {
+                readytotalk = false;
                 //Debug.Log("start talking");
-                    typewriterbox.gameObject.SetActive(true);
+                typewriterbox.gameObject.SetActive(true);
                     TypeWriterEffect typeWriterEffect = typewriterbox.GetComponent<TypeWriterEffect>();
                     typeWriterEffect.fullText = "Bring me the yellow ball and I'll give you a key";
                     waitfortext = true;
                 //Debug.Log("wait for text =" + waitfortext);
+                Invoke("talkcooldown", 0.2f);
             }
         }
 
         if (trig.name == "NPC2")
         {
-            if (Input.GetKeyUp(GameManager.GM.check) && waitforcommand == false && waitfortext == false && isPaused == false)
+            if (Input.GetKeyDown(GameManager.GM.check) && waitforcommand == false && waitfortext == false && isPaused == false && readytotalk == true)
             {
+                readytotalk = false;
                 //Debug.Log("start talking");
                 typewriterbox.gameObject.SetActive(true);
                 TypeWriterEffect typeWriterEffect = typewriterbox.GetComponent<TypeWriterEffect>();
                 typeWriterEffect.fullText = "Bring me the pink ball and I'll give you a key";
                 waitfortext = true;
                 //Debug.Log("wait for text =" + waitfortext);
+                Invoke("talkcooldown", 0.2f);
             }
         }
     }
@@ -1012,7 +1026,7 @@ public class player_move : MonoBehaviour
             //check if all squares placed and spawn key
             if(orangeplaced==true && redplaced==true && yellowplaced == true)
             {
-                GameObject Key = GameObject.Find("Key");
+                GameObject Key = GameObject.Find("key");
                 Key.transform.position = new Vector3 (1384, -80, 0);
             }
         }

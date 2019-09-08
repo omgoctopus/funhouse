@@ -5213,7 +5213,7 @@ BoxCollider2D:
     adaptiveTiling: 0
   m_AutoTiling: 0
   serializedVersion: 2
-  m_Size: {x: 1.667, y: 1}
+  m_Size: {x: 1.833, y: 1}
   m_EdgeRadius: 0
 --- !u!61 &560940239
 BoxCollider2D:
@@ -7299,7 +7299,7 @@ BoxCollider2D:
     adaptiveTiling: 0
   m_AutoTiling: 0
   serializedVersion: 2
-  m_Size: {x: 1.667, y: 1}
+  m_Size: {x: 1.833, y: 1}
   m_EdgeRadius: 0
 --- !u!61 &794961086
 BoxCollider2D:
@@ -11238,7 +11238,7 @@ BoxCollider2D:
     adaptiveTiling: 0
   m_AutoTiling: 0
   serializedVersion: 2
-  m_Size: {x: 1.667, y: 1}
+  m_Size: {x: 1.833, y: 1}
   m_EdgeRadius: 0
 --- !u!61 &1439919370
 BoxCollider2D:
@@ -11499,7 +11499,7 @@ BoxCollider2D:
     adaptiveTiling: 0
   m_AutoTiling: 0
   serializedVersion: 2
-  m_Size: {x: 1.667, y: 1}
+  m_Size: {x: 1.833, y: 1}
   m_EdgeRadius: 0
 --- !u!61 &1448731548
 BoxCollider2D:
@@ -12149,6 +12149,8 @@ MonoBehaviour:
   moveX: 0
   moveY: 0
   ladderX: 0
+  menumoveX: 0
+  menumoveY: 0
   isGrounded: 0
   ladderaccess: 0
   onladder: 0
@@ -13928,7 +13930,7 @@ BoxCollider2D:
     adaptiveTiling: 0
   m_AutoTiling: 0
   serializedVersion: 2
-  m_Size: {x: 1.667, y: 1}
+  m_Size: {x: 1.833, y: 1}
   m_EdgeRadius: 0
 --- !u!61 &1716093178
 BoxCollider2D:
@@ -14933,7 +14935,7 @@ BoxCollider2D:
     adaptiveTiling: 0
   m_AutoTiling: 0
   serializedVersion: 2
-  m_Size: {x: 1.667, y: 1}
+  m_Size: {x: 1.833, y: 1}
   m_EdgeRadius: 0
 --- !u!61 &1829053629
 BoxCollider2D:
