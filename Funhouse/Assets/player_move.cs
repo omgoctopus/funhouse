@@ -9,13 +9,13 @@ public class player_move : MonoBehaviour
     public int playerspeed = 100;
     private bool facingright = true, readyforyellowcircle = false, readyforpinkcircle=false, keyused = false, door3locked=true, door7locked=true;
     private bool readyforbluetriangle = false, readyforredsquare=false, readyforyellowsquare=false, readyfororangesquare=false;
-    private bool redplaced = false, orangeplaced = false, yellowplaced = false;
+    private bool redplaced = false, orangeplaced = false, yellowplaced = false, playerjumped=false;
     public int playerjumppower = 1250;
     public float moveX, moveY, ladderX, menumoveX, menumoveY;
-    public bool isGrounded, ladderaccess, onladder, readytodismount, readyfordoor;
-    public float timeuntildismount = 0.12f;
+    public bool isGrounded, ladderaccess, onladder, readytodismount, readyfordoor, onslope;
+    public float timeuntildismount = 0.12f, sensitivity;
     private float leaveladdertimer = 0.0f;
-    Vector2 newposition;
+    Vector2 newposition, slopenormal, playermovedirection;
     private GameObject laddertop;
     public GameObject dialoguebox, door3spritelocked, door3spriteunlocked, door7spritelocked, door7spriteunlocked;
     public GameObject typewriterbox;
@@ -57,6 +57,8 @@ public class player_move : MonoBehaviour
         hidePaused();
 
         StartCoroutine(initializeinventory());
+
+        slopenormal = new Vector2(0, 1);
     }
 
     private void Awake()
@@ -71,6 +73,7 @@ public class player_move : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        Debug.DrawLine(Vector3.zero, 32*playermovedirection, Color.red);
 
         if (Input.GetKeyDown(GameManager.GM.check) && waitfortext == true && readytotalk==true)
             {
@@ -88,6 +91,16 @@ public class player_move : MonoBehaviour
         PlayerMove();
 
         GroundedUpdater();
+
+        //turn off gravity while on slopes so player doesn't slide down
+        if (onslope == true)
+        {
+            GetComponent<Rigidbody2D>().gravityScale = 0.0f;
+        }
+        if (onslope != true && onladder != true)
+        {
+            GetComponent<Rigidbody2D>().gravityScale = 1.0f;
+        }
 
         //pause
         // added if waitforcaommnd != true, waitfortext !=true to try and remove issue  where player can pause during dialogue
@@ -164,7 +177,7 @@ public class player_move : MonoBehaviour
             menumoveY = -1;
         }
 
-        if (menumoveX == 0 && menumoveY == 0)
+        if (menumoveX <= sensitivity && menumoveX >= -sensitivity && menumoveY <= sensitivity && menumoveY >= -sensitivity)
             readyforcursormovement = true;
 
         if(readyforcursormovement==false)
@@ -172,7 +185,7 @@ public class player_move : MonoBehaviour
             Debug.Log("menumoveX=" + menumoveX + " menumoveY=" + menumoveY);
         }
 
-        if (menumoveX > 0.2 && readyforcursormovement == true)
+        if (menumoveX > sensitivity && readyforcursormovement == true)
         {
             Debug.Log("right key registered");
             currentposition = currentposition + 1;
@@ -187,7 +200,7 @@ public class player_move : MonoBehaviour
             inventorycursor.transform.localPosition = slotlocation[j];
             readyforcursormovement = false;
         }
-        if (menumoveX < -0.2 && readyforcursormovement == true)
+        if (menumoveX < -1 * sensitivity && readyforcursormovement == true)
         {
             Debug.Log("left key registered");
             currentposition = currentposition - 1;
@@ -273,6 +286,22 @@ public class player_move : MonoBehaviour
         { moveX = -1;
         }
 
+        if (moveX > sensitivity)
+            moveX = 1;
+
+        if (moveX < -1 * sensitivity)
+            moveX = -1;
+
+        if (moveY > sensitivity)
+            moveY = 1;
+
+        if (moveY < -1 * sensitivity)
+            moveY = -1;
+
+        if (!Input.GetKey(GameManager.GM.right) && !Input.GetKey(GameManager.GM.left) && Input.GetAxisRaw(GameManager.GM.Horizontal) < sensitivity && Input.GetAxisRaw(GameManager.GM.Horizontal) > -1 * sensitivity)
+        { moveX = 0; }
+
+
         //up-down controls
         moveY = Input.GetAxis(GameManager.GM.Vertical);
 
@@ -283,6 +312,9 @@ public class player_move : MonoBehaviour
         {
             moveY = -1;
         }
+
+        if (!Input.GetKey(GameManager.GM.up) && !Input.GetKey(GameManager.GM.down) && Input.GetAxisRaw(GameManager.GM.Vertical) < sensitivity && Input.GetAxisRaw(GameManager.GM.Vertical) > -1 * sensitivity)
+        { moveY = 0; }
 
         //if you have just used a door,
         //Y-axis has to be reset to zero before you can enter a door again
@@ -301,11 +333,27 @@ public class player_move : MonoBehaviour
             FlipPlayer();
         }
         //left-right movement
-        if(onladder!=true)
-        gameObject.GetComponent<Rigidbody2D>().velocity = new Vector2(moveX * playerspeed, gameObject.GetComponent<Rigidbody2D>().velocity.y);
+
+        //old left-right movement
+        //if(onladder!=true)
+        //gameObject.GetComponent<Rigidbody2D>().velocity = new Vector2(moveX * playerspeed, gameObject.GetComponent<Rigidbody2D>().velocity.y);
+
+        // this code lets you jump normally and fall normally once you're off the ground 
+        if (onladder != true)
+        {
+            if(onslope!=true || playerjumped==true)
+                gameObject.GetComponent<Rigidbody2D>().velocity = new Vector2(moveX * playerspeed, gameObject.GetComponent<Rigidbody2D>().velocity.y);
+        }
+        
+        //this code attempts to correct velocity path on slopes
+        if (onladder != true && onslope==true && playerjumped==false)
+        {
+            playermovedirection = -Vector2.Perpendicular(slopenormal);
+            gameObject.GetComponent<Rigidbody2D>().velocity = moveX * playerspeed * playermovedirection;
+                }
 
         //add idle movement to wakeup physics engine for ontriggerstay
-        if(onladder!=true && gameObject.GetComponent<Rigidbody2D>().velocity==new Vector2(0,0))
+        if (onladder!=true && gameObject.GetComponent<Rigidbody2D>().velocity==new Vector2(0,0))
         {
             GetComponent<Rigidbody2D>().AddForce(Vector2.up * .01f);
 
@@ -320,6 +368,8 @@ public class player_move : MonoBehaviour
         //if (onladder == true &&  isGrounded!=true)
         if(onladder == true)
         {
+            Debug.Log("on ladder, moveY ="+moveY+" moveX ="+moveX);
+
             //alloow vertical movement
             gameObject.GetComponent<Rigidbody2D>().velocity = new Vector2(0, moveY * playerspeed * 0.5f);
 
@@ -373,6 +423,7 @@ public class player_move : MonoBehaviour
     void GroundedUpdater()
     {
         isGrounded = false; //Set to false every frame by default
+        onslope = false;
         RaycastHit2D[] hit;
         hit = Physics2D.RaycastAll(transform.position + new Vector3(0, -16, 0), Vector2.down, 1.0f);
         // you can increase RaycastLength and adjust direction for your case
@@ -408,6 +459,13 @@ public class player_move : MonoBehaviour
             { //Change it to match ground tag
                 isGrounded = true;
             }
+            //if raycast detects a slope, add a vertical force doesn't fall down slope
+            if (hitedL.collider.gameObject.layer == 8 && moveX==0)
+            {
+                //GetComponent<Rigidbody2D>().AddForce(Vector2.up * 1000);
+                onslope = true;
+            }
+
         }
         RaycastHit2D[] hitR;
         hitR = Physics2D.RaycastAll(transform.position + new Vector3(7, -16, 0), Vector2.down, 1.0f);
@@ -419,12 +477,18 @@ public class player_move : MonoBehaviour
             // Don't forget to add tag to your ground
             if (hitedR.collider.gameObject.tag == "ground")
             { //Change it to match ground tag
-                isGrounded = true;
+                isGrounded = true;               
             }
             //if you are not currently climbing ladder, the ladder tops should 'ground' the character
             if (hitedR.collider.gameObject.tag == "laddertop" && onladder != true)
             { //Change it to match ground tag
                 isGrounded = true;
+            }
+            //if raycast detects a slope, add a vertical force doesn't fall down slope
+            if (hitedR.collider.gameObject.layer == 8 && moveX==0)
+            {
+                //GetComponent<Rigidbody2D>().AddForce(Vector2.up * 1000);
+                onslope = true;
             }
         }
 
@@ -896,15 +960,47 @@ public class player_move : MonoBehaviour
         }
     }
 
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (collision.gameObject.tag == "Hazard")
+        {
+            Destroy(gameObject);
+        }
+        //if player collides with an object on slope layer, find the normal to the slope
+        if (collision.gameObject.layer == 8)
+        {
+            foreach (ContactPoint2D cp2d in collision.contacts)
+            {
+                slopenormal = cp2d.normal;
+            }
+        }
+    }
+
+    private void OnCollisionExit2D(Collision2D collision)
+    {
+        //if player when player leaves collision with slope, reset ground normal
+        if (collision.gameObject.layer == 8)
+        {
+            slopenormal = new Vector2(0, 1);
+        }
+    }
+
 
     void jump()
     {
+        playerjumped = true;
         //jumpingcode
         GetComponent<Rigidbody2D>().AddForce(Vector2.up * playerjumppower);
         //isGrounded = false;
         //onladder = false;
-
+        Invoke("playerjumpedfalse", 0.2f);
     }
+
+    void playerjumpedfalse()
+    {
+        playerjumped = false;
+    }
+
     void FlipPlayer()
     {
         facingright = !facingright;

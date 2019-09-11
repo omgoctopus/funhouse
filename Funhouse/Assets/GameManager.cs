@@ -19,7 +19,7 @@ public class GameManager : MonoBehaviour
     public KeyCode pause { get; set; }
     public string Horizontal = "Horizontal";
     public string Vertical = "Vertical";
-    public int playerscore = 0, levelnumber = 1;
+    public int playerscore = 0, levelnumber = 1, lives=3;
 
 
 

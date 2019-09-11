@@ -24,7 +24,7 @@ public class CameraSystem : MonoBehaviour
         float y = Mathf.Clamp(player.transform.position.y, yMin, yMax);
         gameObject.transform.position = new Vector3(x, y, gameObject.transform.position.z);
 
-
+        //Debug.Log("camera xy " + x +"  " +y);
     }
 }
 
