@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 public class player_move : MonoBehaviour
 {
@@ -11,11 +12,11 @@ public class player_move : MonoBehaviour
     private bool readyforbluetriangle = false, readyforredsquare=false, readyforyellowsquare=false, readyfororangesquare=false;
     private bool redplaced = false, orangeplaced = false, yellowplaced = false, playerjumped=false;
     public int playerjumppower = 1250;
-    public float moveX, moveY, ladderX, menumoveX, menumoveY;
-    public bool isGrounded, ladderaccess, onladder, readytodismount, readyfordoor, onslope;
+    public float moveX, moveY, ladderX, menumoveX, menumoveY, accelerationtime, decelerationtime, accelerationrate, decelerationrate;
+    public bool isGrounded, ladderaccess, onladder, readytodismount, readyfordoor, onslope, needtostop;
     public float timeuntildismount = 0.12f, sensitivity;
-    private float leaveladdertimer = 0.0f;
-    Vector2 newposition, slopenormal, playermovedirection;
+    private float leaveladdertimer = 0.0f, accelerationtimer=0.0f, decelerationtimer=0.0f, speedfactor, startingspeed;
+    Vector2 newposition, slopenormal, playermovedirection, spawningpoint;
     private GameObject laddertop;
     public GameObject dialoguebox, door3spritelocked, door3spriteunlocked, door7spritelocked, door7spriteunlocked;
     public GameObject typewriterbox;
@@ -267,6 +268,7 @@ public class player_move : MonoBehaviour
 
     void PlayerMove()
     {
+        Debug.Log("needtostop=" + needtostop + " movespeed=" + speedfactor+" deceltimer="+decelerationtimer+" acceltimer="+accelerationtimer+" facingright="+facingright);
 
         //left-right controls
         //enable joystick:
@@ -298,9 +300,83 @@ public class player_move : MonoBehaviour
         if (moveY < -1 * sensitivity)
             moveY = -1;
 
+        //if inputs don't meet sensitivity threshold, set moveX to 0 and reset accelerationtimer
         if (!Input.GetKey(GameManager.GM.right) && !Input.GetKey(GameManager.GM.left) && Input.GetAxisRaw(GameManager.GM.Horizontal) < sensitivity && Input.GetAxisRaw(GameManager.GM.Horizontal) > -1 * sensitivity)
-        { moveX = 0; }
+        { moveX = 0;
+            accelerationtimer = 0;
+        }
 
+        //moveX acceleration
+        if(moveX>0 && gameObject.GetComponent<Rigidbody2D>().velocity.x>=0)
+        {
+            needtostop = false;
+            decelerationtimer = 0;
+            accelerationtimer += Time.deltaTime;
+            if (accelerationtimer > accelerationtime)
+            {
+                speedfactor=1;
+            }
+            else
+            {
+                speedfactor = 0.5f + accelerationtimer / accelerationtime / 2;
+            }
+        }
+
+        if (moveX < 0 && gameObject.GetComponent<Rigidbody2D>().velocity.x<=0)
+        {
+            needtostop = false;
+            decelerationtimer = 0;
+            accelerationtimer += Time.deltaTime;
+            if (accelerationtimer > accelerationtime)
+            {
+                speedfactor = -1;
+            }
+            else
+            {
+                speedfactor = -0.5f - accelerationtimer / accelerationtime / 2;
+            }
+        }
+
+        //moveX deceleration
+        if(speedfactor!=0 && moveX==0 && needtostop!=true)
+        {
+            startingspeed = speedfactor;
+            needtostop = true;
+        }
+       
+        if(moveX>0 && gameObject.GetComponent<Rigidbody2D>().velocity.x < 0)
+        {
+            accelerationtimer = 0;
+            startingspeed = speedfactor;
+            needtostop = true;
+        }
+
+        if (moveX < 0 && gameObject.GetComponent<Rigidbody2D>().velocity.x > 0)
+        {
+            accelerationtimer = 0;
+            startingspeed = speedfactor;
+            needtostop = true;
+        }
+
+        if (needtostop == true)
+        {
+            decelerationtimer += Time.deltaTime;
+            if (decelerationtimer > decelerationtime)
+            {
+                speedfactor = 0;
+                decelerationtimer = 0;
+                needtostop = false;
+            }
+            else
+            {
+                speedfactor = startingspeed * (1 - decelerationtimer / decelerationtime);
+            }
+        }
+
+        if (onladder != true && gameObject.GetComponent<Rigidbody2D>().velocity.x == 0)
+        {
+            needtostop = false;
+        }
 
         //up-down controls
         moveY = Input.GetAxis(GameManager.GM.Vertical);
@@ -324,11 +400,11 @@ public class player_move : MonoBehaviour
 
         //animations
         //player direction
-        if (moveX < -0.02f && facingright == false)
+        if (moveX < -0.02 && facingright == true)
         {
             FlipPlayer();
         }
-        else if (moveX > 0.02f && facingright == true)
+        else if (moveX > 0.02 && facingright == false)
         {
             FlipPlayer();
         }
@@ -339,24 +415,25 @@ public class player_move : MonoBehaviour
         //gameObject.GetComponent<Rigidbody2D>().velocity = new Vector2(moveX * playerspeed, gameObject.GetComponent<Rigidbody2D>().velocity.y);
 
         // this code lets you jump normally and fall normally once you're off the ground 
+        //NOTE CHANGED moveX TO speedfactor FOR THE NEXT TWO SECTIONS
         if (onladder != true)
         {
+            //if you recently jumped or are not on a slope, use 'normal' movemennt
             if(onslope!=true || playerjumped==true)
-                gameObject.GetComponent<Rigidbody2D>().velocity = new Vector2(moveX * playerspeed, gameObject.GetComponent<Rigidbody2D>().velocity.y);
+                gameObject.GetComponent<Rigidbody2D>().velocity = new Vector2(speedfactor * playerspeed, gameObject.GetComponent<Rigidbody2D>().velocity.y);
         }
         
         //this code attempts to correct velocity path on slopes
         if (onladder != true && onslope==true && playerjumped==false)
         {
             playermovedirection = -Vector2.Perpendicular(slopenormal);
-            gameObject.GetComponent<Rigidbody2D>().velocity = moveX * playerspeed * playermovedirection;
+            gameObject.GetComponent<Rigidbody2D>().velocity = speedfactor * playerspeed * playermovedirection;
                 }
 
         //add idle movement to wakeup physics engine for ontriggerstay
         if (onladder!=true && gameObject.GetComponent<Rigidbody2D>().velocity==new Vector2(0,0))
         {
             GetComponent<Rigidbody2D>().AddForce(Vector2.up * .01f);
-
         }
 
         //ladder movement
@@ -460,7 +537,7 @@ public class player_move : MonoBehaviour
                 isGrounded = true;
             }
             //if raycast detects a slope, add a vertical force doesn't fall down slope
-            if (hitedL.collider.gameObject.layer == 8 && moveX==0)
+            if (hitedL.collider.gameObject.layer == 8 && moveX == 0)
             {
                 //GetComponent<Rigidbody2D>().AddForce(Vector2.up * 1000);
                 onslope = true;
@@ -485,7 +562,7 @@ public class player_move : MonoBehaviour
                 isGrounded = true;
             }
             //if raycast detects a slope, add a vertical force doesn't fall down slope
-            if (hitedR.collider.gameObject.layer == 8 && moveX==0)
+            if (hitedR.collider.gameObject.layer == 8 && moveX == 0)
             {
                 //GetComponent<Rigidbody2D>().AddForce(Vector2.up * 1000);
                 onslope = true;
@@ -496,7 +573,11 @@ public class player_move : MonoBehaviour
 
     void OnTriggerEnter2D(Collider2D trig)
     {
-
+        //updates spawnpoint as you play
+        if(trig.tag == "spawn")
+        {
+            spawningpoint = trig.transform.position;
+        }
 
         //if player enters ladder's trig zone
         if (trig.tag == "ladder")
@@ -964,7 +1045,10 @@ public class player_move : MonoBehaviour
     {
         if (collision.gameObject.tag == "Hazard")
         {
-            Destroy(gameObject);
+            GameManager.GM.lives = GameManager.GM.lives - 1;
+            if(GameManager.GM.lives==0)
+            { SceneManager.LoadScene("funhousetitlescreen"); }
+            transform.position = spawningpoint;
         }
         //if player collides with an object on slope layer, find the normal to the slope
         if (collision.gameObject.layer == 8)
@@ -988,11 +1072,10 @@ public class player_move : MonoBehaviour
 
     void jump()
     {
+        //playerjumped bool is needed so jump physics work when you jump from a slope
         playerjumped = true;
         //jumpingcode
         GetComponent<Rigidbody2D>().AddForce(Vector2.up * playerjumppower);
-        //isGrounded = false;
-        //onladder = false;
         Invoke("playerjumpedfalse", 0.2f);
     }
 

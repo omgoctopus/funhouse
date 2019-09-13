@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class roomtrigger : MonoBehaviour
 {
-    private GameObject viewport;
+    private GameObject viewport, player;
 
     // this script uses the center of the player to check which room they are in and adjust camera accordingly
 
@@ -26,6 +26,7 @@ public class roomtrigger : MonoBehaviour
         viewport = GameObject.FindGameObjectWithTag("MainCamera");
         CameraSystem cameraScript = viewport.GetComponent<CameraSystem>();
 
+        player = GameObject.FindGameObjectWithTag("Player");
 
         //change camera range when player enters another room
         if (trig.name == "Room1")
@@ -111,6 +112,23 @@ public class roomtrigger : MonoBehaviour
             cameraScript.xMax = 1280;
             cameraScript.yMin = 240;
             cameraScript.yMax = 240;
+        }
+        if (trig.name == "Room13")
+        {
+            cameraScript.xMin = -336;
+            cameraScript.xMax = -336;
+            cameraScript.yMin = 480;
+            cameraScript.yMax = 720;
+        }
+
+        //teleport player somewhere else on the map as if they have entered adjacent room
+        if (trig.name == "Gateway1")
+        {
+            player.transform.position = new Vector2 (-176, 648);
+        }
+        if (trig.name == "Gateway2" || trig.name == "Gateway3")
+        {
+            player.transform.position = new Vector2(-160, -72);
         }
     }
 }
