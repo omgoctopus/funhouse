@@ -7,22 +7,22 @@ using UnityEngine.SceneManagement;
 public class player_move : MonoBehaviour
 {
     // basic movements/actions
-    public int playerspeed = 100;
+    public float playerspeed = 100;
     private bool facingright = true, readyforyellowcircle = false, readyforpinkcircle=false, keyused = false, door3locked=true, door7locked=true;
     private bool readyforbluetriangle = false, readyforredsquare=false, readyforyellowsquare=false, readyfororangesquare=false;
-    private bool redplaced = false, orangeplaced = false, yellowplaced = false, playerjumped=false;
+    private bool redplaced = false, orangeplaced = false, yellowplaced = false, playerjumped=false, dialogueremaining=false, playerhasupgrade=false;
     public int playerjumppower = 1250;
     public float moveX, moveY, ladderX, menumoveX, menumoveY, accelerationtime, decelerationtime, accelerationrate, decelerationrate;
     public bool isGrounded, ladderaccess, onladder, readytodismount, readyfordoor, onslope, needtostop;
     public float timeuntildismount = 0.12f, sensitivity;
-    private float leaveladdertimer = 0.0f, accelerationtimer=0.0f, decelerationtimer=0.0f, speedfactor, startingspeed;
-    Vector2 newposition, slopenormal, playermovedirection, spawningpoint;
+    private float leaveladdertimer = 0.0f, accelerationtimer=0.0f, decelerationtimer=0.0f, speedfactor, startingspeed, movespeedtimer, initialmovespeed;
+    Vector2 newposition, slopenormal, playermovedirection, spawningpoint, externalforce=new Vector2 (0,0);
     private GameObject laddertop;
     public GameObject dialoguebox, door3spritelocked, door3spriteunlocked, door7spritelocked, door7spriteunlocked;
     public GameObject typewriterbox;
     private GameObject menuicon;
-    public bool waitforcommand = false, readyforcursormovement = false, readytotalk=true;
-    public bool waitfortext = false;
+    public bool waitforcommand = false, readyforcursormovement = false, readytotalk=true; //readytotalk is used to prevent the player from accidentally re-initiating conversation with an NPC they just talked to
+    public bool waitfortext = false, upgradeison=false;
     bool isPaused = false;
     GameObject[] pauseObjects;
     public string[] inventory = new string[8];
@@ -30,7 +30,7 @@ public class player_move : MonoBehaviour
     // slot locations 0-7 correspond to inventory 0-7. Slot Location 8 is for cursor or items when not in use
     private string itemname;
     private List<int> cursorlocation = new List<int>();
-    private int currentposition, j;
+    private int currentposition, j, dialoguepagenumber;
 
     // level item menu icons
     public GameObject inventorycursor;
@@ -53,6 +53,7 @@ public class player_move : MonoBehaviour
         missingred.gameObject.SetActive(false);
         missingorange.gameObject.SetActive(false);
         missingyellow.gameObject.SetActive(false);
+        initialmovespeed = playerspeed;
 
         pauseObjects = GameObject.FindGameObjectsWithTag("pause");
         hidePaused();
@@ -110,20 +111,58 @@ public class player_move : MonoBehaviour
             pausegame();
         }
 
+        //toggle upgrade
+        if (waitforcommand != true && waitfortext != true && isPaused!=true && playerhasupgrade==true && Input.GetKeyDown(GameManager.GM.upgrade))
+        {
+            toggleupgrade();
+        }
+
         //cursor movement while paused
         if (isPaused)
         {
             cursormovement();
         }
 
-
-
-
             // this exits the text screen when you pick up an item or finish talking
             if (waitforcommand == true)
         {
             Waitingforinput();
         }
+
+            // if you are in the middle of multipage dialgue, the first page will start in ontriggerstay, then it will resume here in the update section
+        if (waitforcommand == true && Input.GetKeyDown(GameManager.GM.check) && dialoguepagenumber == 2)
+        {
+            Debug.Log("you got the upgrade");
+            Time.timeScale = 1;
+            dialoguebox.gameObject.SetActive(false);
+            typewriterbox.gameObject.SetActive(false);
+            playerhasupgrade = true;
+            dialoguebox.gameObject.SetActive(true);
+            dialoguebox.gameObject.GetComponent<Text>().text = "You got the upgrade.";
+            //Time.timeScale = 0;
+            dialoguepagenumber = 3;
+            //waitforcommand = true; let's try having this false
+            readytotalk = false;
+            Invoke("talkcooldown", 0.4f);
+        }
+
+        if (waitforcommand == true && Input.GetKeyDown(GameManager.GM.check) && dialoguepagenumber == 3 && readytotalk==true)
+        {
+            Time.timeScale = 1;
+            dialoguebox.gameObject.SetActive(false);
+            typewriterbox.gameObject.SetActive(false);
+            typewriterbox.gameObject.SetActive(true);
+            TypeWriterEffect typeWriterEffect = typewriterbox.GetComponent<TypeWriterEffect>();
+            typeWriterEffect.fullText = "This item will let you resist the strange effects found in certain rooms";
+            waitfortext = true;
+            waitforcommand = false;
+            readytotalk = false;
+            dialogueremaining = false;
+            dialoguepagenumber = 0;
+            Invoke("talkcooldown", 0.4f);
+        }
+
+
     }
 
     //pause game
@@ -145,6 +184,33 @@ public class player_move : MonoBehaviour
             Debug.Log("cursor start at"+ currentposition);
         }
     }
+
+    //toggle upgrade
+    void toggleupgrade()
+    {
+        if (upgradeison)
+        {
+            upgradeison = false;
+            Debug.Log("upgrade turned off");
+
+            //for color-coded dungeon or tractor beams, move player back to default layer
+            gameObject.layer = 0;
+        }
+        else
+        {
+            upgradeison = true;
+            Debug.Log("upgrade turned on");
+
+            //for colorcoded dungeon, move player to new layer that interacts with intangible layer
+            //in tractor beam dungeon, this is a layer that does NOT interact with tractor beams
+            gameObject.layer = 10;
+
+            //return player movespeed to original speed
+            playerspeed = initialmovespeed;
+        }
+    }
+
+
 
     void cursormovement()
     {
@@ -221,7 +287,7 @@ public class player_move : MonoBehaviour
 
     void Waitingforinput()
     {
-        if (Input.GetKeyDown(GameManager.GM.check))
+        if (Input.GetKeyDown(GameManager.GM.check)  && dialogueremaining==false)
         {
             //Debug.Log("left");
             Time.timeScale = 1;
@@ -268,7 +334,7 @@ public class player_move : MonoBehaviour
 
     void PlayerMove()
     {
-        Debug.Log("needtostop=" + needtostop + " movespeed=" + speedfactor+" deceltimer="+decelerationtimer+" acceltimer="+accelerationtimer+" facingright="+facingright);
+        //Debug.Log("needtostop=" + needtostop + " movespeed=" + speedfactor+" deceltimer="+decelerationtimer+" acceltimer="+accelerationtimer+" facingright="+facingright);
 
         //left-right controls
         //enable joystick:
@@ -420,7 +486,7 @@ public class player_move : MonoBehaviour
         {
             //if you recently jumped or are not on a slope, use 'normal' movemennt
             if(onslope!=true || playerjumped==true)
-                gameObject.GetComponent<Rigidbody2D>().velocity = new Vector2(speedfactor * playerspeed, gameObject.GetComponent<Rigidbody2D>().velocity.y);
+                gameObject.GetComponent<Rigidbody2D>().velocity = new Vector2(speedfactor * playerspeed, gameObject.GetComponent<Rigidbody2D>().velocity.y) + externalforce;
         }
         
         //this code attempts to correct velocity path on slopes
@@ -513,6 +579,12 @@ public class player_move : MonoBehaviour
             { //Change it to match ground tag
                 isGrounded = true;
             }
+            //will have to add this line in color-coded intangible dungeon
+            if (hited.collider.gameObject.layer == 9 && upgradeison==true)
+            { 
+                isGrounded = true;
+            }
+
             //if you are not currently climbing ladder, the ladder tops should 'ground' the character
             if (hited.collider.gameObject.tag == "laddertop" && onladder != true)
             { //Change it to match ground tag
@@ -543,6 +615,13 @@ public class player_move : MonoBehaviour
                 onslope = true;
             }
 
+            //will have to add this line in color-coded intangible dungeon
+            if (hitedL.collider.gameObject.layer == 9 && upgradeison == true)
+            {
+                isGrounded = true;
+            }
+
+
         }
         RaycastHit2D[] hitR;
         hitR = Physics2D.RaycastAll(transform.position + new Vector3(7, -16, 0), Vector2.down, 1.0f);
@@ -566,6 +645,12 @@ public class player_move : MonoBehaviour
             {
                 //GetComponent<Rigidbody2D>().AddForce(Vector2.up * 1000);
                 onslope = true;
+            }
+
+            //will have to add this line in color-coded intangible dungeon
+            if (hitedR.collider.gameObject.layer == 9 && upgradeison == true)
+            {
+                isGrounded = true;
             }
         }
 
@@ -624,7 +709,21 @@ public class player_move : MonoBehaviour
 
     void OnTriggerStay2D(Collider2D trig)
     {
+        if (trig.name == "Room2" && upgradeison==false)
+        {
+            playerspeed = initialmovespeed / 2;
+        }
 
+        if (trig.name == "Room3" && upgradeison == false)
+        {
+            movespeedtimer += Time.deltaTime;
+            playerspeed = initialmovespeed * (Mathf.Sin(movespeedtimer*2.5f)+1);
+        }
+
+        if (trig.name == "tractorbeamthatpullsleft")
+        {
+            externalforce = new Vector2 (-100, 0);
+        }
 
         //if player is in door's trig zone
         if (trig.name == "Door1")
@@ -876,13 +975,53 @@ public class player_move : MonoBehaviour
                 Invoke("talkcooldown", 0.2f);
             }
         }
+
+        if (trig.name == "personthatprovidesupgrade" && playerhasupgrade==false)
+        {
+            if (Input.GetKeyDown(GameManager.GM.check) && waitforcommand == false && waitfortext == false && isPaused == false && readytotalk == true)
+            {
+                readytotalk = false;
+                dialoguepagenumber = 2;
+                //dialogue remaining is used to keep player there through multiple pages of dialogue.
+                dialogueremaining = true;
+                //Debug.Log("start talking");
+                typewriterbox.gameObject.SetActive(true);
+                TypeWriterEffect typeWriterEffect = typewriterbox.GetComponent<TypeWriterEffect>();
+                typeWriterEffect.fullText = "You will need this to conquer the dungeon";
+                waitfortext = true;
+                //Debug.Log("wait for text =" + waitfortext);
+                Invoke("talkcooldown", 0.2f);
+            }
+    }
+        if (trig.name == "personthatprovidesupgrade" && playerhasupgrade == true)
+        {
+            if (Input.GetKeyDown(GameManager.GM.check) && waitforcommand == false && waitfortext == false && isPaused == false && readytotalk == true)
+            {
+                readytotalk = false;
+                //Debug.Log("start talking");
+                typewriterbox.gameObject.SetActive(true);
+                TypeWriterEffect typeWriterEffect = typewriterbox.GetComponent<TypeWriterEffect>();
+                typeWriterEffect.fullText = "This item will let you resist the strange effects found in certain rooms";
+                waitfortext = true;
+                //Debug.Log("wait for text =" + waitfortext);
+                Invoke("talkcooldown", 0.2f);
+            }
+        }
     }
 
     void OnTriggerExit2D(Collider2D trig)
     {
+        if (trig.name == "Room2")
+        {
+            playerspeed = initialmovespeed;
+        }
 
+        if (trig.name == "tractorbeamthatpullsleft")
+        {
+            externalforce = new Vector2(0, 0);
+        }
 
-      //if player exits ladder's trig zone
+        //if player exits ladder's trig zone
         if (trig.tag == "ladder")
         {
             ladderaccess = false;
@@ -1074,6 +1213,9 @@ public class player_move : MonoBehaviour
     {
         //playerjumped bool is needed so jump physics work when you jump from a slope
         playerjumped = true;
+        //set vertical velocity to zero before applying jumping power so player can't jump extra high from slopes
+        gameObject.GetComponent<Rigidbody2D>().velocity = new Vector2(gameObject.GetComponent<Rigidbody2D>().velocity.x, 0);
+
         //jumpingcode
         GetComponent<Rigidbody2D>().AddForce(Vector2.up * playerjumppower);
         Invoke("playerjumpedfalse", 0.2f);

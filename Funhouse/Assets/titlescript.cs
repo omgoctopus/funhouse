@@ -16,9 +16,10 @@ public class titlescript : MonoBehaviour
     bool Rassigned = false;
     bool Uassigned = false;
     bool Dassigned = false;
-    bool Shieldassigned = false;
+    bool Shieldassigned = false; //shield is jump and I was too lazy to change it when I copied the Monkey Biz script
     bool Checkassigned = false;
     bool Pauseassigned = false;
+    bool Upgradeassigned = false;
     AudioSource audSource;
     //public AudioClip titletheme;
     private int Q = 1; //this is to keep track of what keybind question we're on
@@ -48,7 +49,6 @@ public class titlescript : MonoBehaviour
         position1 = -44.5f;
         position2 = -60.5f;
         currentposition = position1;
-        GameManager.GM.playerscore = 0;
         //audSource.clip = titletheme;
         audSource.Play();
 
@@ -128,6 +128,7 @@ public class titlescript : MonoBehaviour
             Shieldassigned = false;
             Checkassigned = false;
             Pauseassigned = false;
+            Upgradeassigned = false;
         }
 
         //  
@@ -197,12 +198,22 @@ public class titlescript : MonoBehaviour
             Q = 7;
         }
 
-        if (!Input.anyKey && Pauseassigned == true && Q == 7)
+        if (optionsmenu == true && Q == 7)
+        {
+            DetectUpgradeButton();
+        }
+
+        if (!Input.anyKey && Upgradeassigned == true && Q < 8)
+        {
+            Q = 8;
+        }
+
+        if (!Input.anyKey && Pauseassigned == true && Q == 8)
         {
             Q = 1;
         }
 
-        if (optionsmenu == true && Q == 7)
+        if (optionsmenu == true && Q == 8)
         {
             DetectStartButton();
         }
@@ -569,6 +580,22 @@ public class titlescript : MonoBehaviour
                 //PlayerPrefs.SetString("jump", GameManager.GM.jump.ToString());
                 Checkassigned = true;
                 Debug.Log("Shield Assigned to" + kcode);
+                options.gameObject.GetComponent<Text>().text = "PRESS UPGRADE BUTTON";
+            }
+        }
+
+    }
+
+    public void DetectUpgradeButton()
+    {
+        foreach (KeyCode kcode in System.Enum.GetValues(typeof(KeyCode)))
+        {
+            if (Input.GetKeyDown(kcode))
+            {
+                GameManager.GM.upgrade = kcode;
+                //PlayerPrefs.SetString("jump", GameManager.GM.jump.ToString());
+                Upgradeassigned = true;
+                Debug.Log("Upgrade Assigned to" + kcode);
                 options.gameObject.GetComponent<Text>().text = "PRESS START BUTTON";
             }
         }

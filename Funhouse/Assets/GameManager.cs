@@ -12,6 +12,7 @@ public class GameManager : MonoBehaviour
     //These can be accessed by any other script in our game
     public KeyCode jump { get; set; }
     public KeyCode check { get; set; }
+    public KeyCode upgrade { get; set; }
     public KeyCode up { get; set; }
     public KeyCode down { get; set; }
     public KeyCode left { get; set; }
@@ -19,7 +20,7 @@ public class GameManager : MonoBehaviour
     public KeyCode pause { get; set; }
     public string Horizontal = "Horizontal";
     public string Vertical = "Vertical";
-    public int playerscore = 0, levelnumber = 1, lives=3;
+    public int levelnumber = 1, lives=3;
 
 
 
