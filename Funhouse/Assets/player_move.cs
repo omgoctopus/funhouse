@@ -10,7 +10,7 @@ public class player_move : MonoBehaviour
     public float playerspeed = 100;
     private bool facingright = true, readyforyellowcircle = false, readyforpinkcircle=false, keyused = false, door3locked=true, door7locked=true;
     private bool readyforbluetriangle = false, readyforredsquare=false, readyforyellowsquare=false, readyfororangesquare=false;
-    private bool redplaced = false, orangeplaced = false, yellowplaced = false, playerjumped=false, dialogueremaining=false, playerhasupgrade=false;
+    private bool roomisfinishedrotating=true, redplaced = false, orangeplaced = false, yellowplaced = false, playerjumped=false, dialogueremaining=false, playerhasupgrade=false;
     public int playerjumppower = 1250;
     public float moveX, moveY, ladderX, menumoveX, menumoveY, accelerationtime, decelerationtime, accelerationrate, decelerationrate;
     public bool isGrounded, ladderaccess, onladder, readytodismount, readyfordoor, onslope, needtostop;
@@ -30,7 +30,7 @@ public class player_move : MonoBehaviour
     // slot locations 0-7 correspond to inventory 0-7. Slot Location 8 is for cursor or items when not in use
     private string itemname;
     private List<int> cursorlocation = new List<int>();
-    private int currentposition, j, dialoguepagenumber;
+    private int currentposition, j, dialoguepagenumber, strangegravityeffects=0, roomstate=1;
 
     // level item menu icons
     public GameObject inventorycursor;
@@ -38,6 +38,8 @@ public class player_move : MonoBehaviour
     public GameObject pinkcircleicon, orangesquareicon, yellowsquareicon, redsquareicon, bluetriangleicon;
     public GameObject key1, bluelocktoppiece, missingred, missingorange, missingyellow;
 
+    // gravity rooms
+    public GameObject gravityroom1;
 
 
     void Start()
@@ -61,6 +63,9 @@ public class player_move : MonoBehaviour
         StartCoroutine(initializeinventory());
 
         slopenormal = new Vector2(0, 1);
+
+        //temporarily giving upgrade at launch for debugging. REMOVE THIS LINE LATER
+        playerhasupgrade = true;
     }
 
     private void Awake()
@@ -75,6 +80,7 @@ public class player_move : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        
         Debug.DrawLine(Vector3.zero, 32*playermovedirection, Color.red);
 
         if (Input.GetKeyDown(GameManager.GM.check) && waitfortext == true && readytotalk==true)
@@ -185,32 +191,84 @@ public class player_move : MonoBehaviour
         }
     }
 
-    //toggle upgrade
+    //toggle upgrade THIS SHOULD WORK FOR MOST DUNGEONS
     void toggleupgrade()
     {
-        if (upgradeison)
+        if (strangegravityeffects == 0)
         {
-            upgradeison = false;
-            Debug.Log("upgrade turned off");
+            if (upgradeison)
+            {
+                upgradeison = false;
+                Debug.Log("upgrade turned off");
 
-            //for color-coded dungeon or tractor beams, move player back to default layer
-            gameObject.layer = 0;
+                //for color-coded dungeon or tractor beams, move player back to default layer
+                gameObject.layer = 0;
+            }
+            else
+            {
+                upgradeison = true;
+                Debug.Log("upgrade turned on");
+
+                //for colorcoded dungeon, move player to new layer that interacts with intangible layer
+                //in tractor beam dungeon, this is a layer that does NOT interact with tractor beams
+                gameObject.layer = 10;
+
+                //return player movespeed to original speed
+                playerspeed = initialmovespeed;
+            }
         }
-        else
+        if (strangegravityeffects != 0)
         {
-            upgradeison = true;
-            Debug.Log("upgrade turned on");
-
-            //for colorcoded dungeon, move player to new layer that interacts with intangible layer
-            //in tractor beam dungeon, this is a layer that does NOT interact with tractor beams
-            gameObject.layer = 10;
-
-            //return player movespeed to original speed
-            playerspeed = initialmovespeed;
+            if (roomisfinishedrotating == true)
+                rotatetheroom();
         }
     }
 
+    void rotatetheroom()
+    {
+        if (strangegravityeffects == 1 && roomstate==1) //rotate room 14
+        {
+            roomisfinishedrotating = false;
+            gameObject.GetComponent<BoxCollider2D>().enabled = false;
+            gameObject.GetComponent<CapsuleCollider2D>().enabled = true;
+            StartCoroutine(rotateroom1clockwise());
+        }
+        if (strangegravityeffects == 1 && roomstate == 2) //rotate room 14
+        {
+            roomisfinishedrotating = false;
+            gameObject.GetComponent<BoxCollider2D>().enabled = false;
+            gameObject.GetComponent<CapsuleCollider2D>().enabled = true;
+            StartCoroutine(rotateroom1counterclockwise());
+        }
+    }
 
+    IEnumerator rotateroom1clockwise()
+    {
+        for (int i = 0; i <= 90; i++)
+        {
+            gravityroom1.transform.eulerAngles = new Vector3(0, 0, -i);
+            yield return new WaitForSeconds(0.0004f);
+        }
+        roomstate = 2;
+        roomisfinishedrotating = true;
+        gameObject.GetComponent<BoxCollider2D>().enabled = true;
+        gameObject.GetComponent<CapsuleCollider2D>().enabled = false;
+        yield break;
+    }
+
+    IEnumerator rotateroom1counterclockwise()
+    {
+        for (int i = 0; i <= 90; i++)
+        {
+            gravityroom1.transform.eulerAngles = new Vector3(0, 0, i-90);
+            yield return new WaitForSeconds(0.0004f);
+        }
+        roomstate = 1;
+        roomisfinishedrotating = true;
+        gameObject.GetComponent<BoxCollider2D>().enabled = true;
+        gameObject.GetComponent<CapsuleCollider2D>().enabled = false;
+        yield break;
+    }
 
     void cursormovement()
     {
@@ -720,6 +778,11 @@ public class player_move : MonoBehaviour
             playerspeed = initialmovespeed * (Mathf.Sin(movespeedtimer*2.5f)+1);
         }
 
+        if (trig.name == "Room14")
+        {
+            strangegravityeffects = 1;
+        }
+
         if (trig.name == "tractorbeamthatpullsleft")
         {
             externalforce = new Vector2 (-100, 0);
@@ -847,6 +910,30 @@ public class player_move : MonoBehaviour
                 readyfordoor = false;
             }
         }
+
+
+        if (trig.name == "Door9")
+        {
+            if (moveY > 0 && readyfordoor == true)
+            {
+                GameObject Door10 = GameObject.Find("Door10");
+                transform.position = Door10.transform.position;
+                //set readyfordoor to false so player doesn't accidentally re-enter
+                readyfordoor = false;
+            }
+        }
+
+        //if player is in door's trig zone
+        if (trig.name == "Door10")
+        {
+            if (moveY > 0 && readyfordoor == true)
+            {
+                GameObject Door9 = GameObject.Find("Door9");
+                transform.position = Door9.transform.position;
+                readyfordoor = false;
+            }
+        }
+
 
 
         //if player is in yellow ball trig zone
@@ -1014,6 +1101,11 @@ public class player_move : MonoBehaviour
         if (trig.name == "Room2")
         {
             playerspeed = initialmovespeed;
+        }
+
+        if (trig.name == "Room14")
+        {
+            strangegravityeffects = 0;
         }
 
         if (trig.name == "tractorbeamthatpullsleft")

@@ -121,6 +121,15 @@ public class roomtrigger : MonoBehaviour
             cameraScript.yMax = 720;
         }
 
+        if (trig.name == "Room14")
+        {
+            cameraScript.xMin = 0;
+            cameraScript.xMax = 0;
+            cameraScript.yMin = -520;
+            cameraScript.yMax = -440;
+        }
+
+
         //teleport player somewhere else on the map as if they have entered adjacent room
         if (trig.name == "Gateway1")
         {
