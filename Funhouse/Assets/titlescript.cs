@@ -33,6 +33,7 @@ public class titlescript : MonoBehaviour
         if (check == null)
         { UnityEngine.SceneManagement.SceneManager.LoadScene("preloadscene"); }
 
+        GameManager.GM.lives = 3;
 
         values = (int[])System.Enum.GetValues(typeof(KeyCode));
         keys = new bool[values.Length];

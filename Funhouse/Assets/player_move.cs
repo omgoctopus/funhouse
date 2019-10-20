@@ -7,16 +7,17 @@ using UnityEngine.SceneManagement;
 public class player_move : MonoBehaviour
 {
     // basic movements/actions
-    public float playerspeed = 100;
-    private bool facingright = true, readyforyellowcircle = false, readyforpinkcircle=false, keyused = false, door3locked=true, door7locked=true;
+    public float playerspeed = 100, jumptime;
+    public bool facingright = true; //needs to be public so sneek can read it
+    private bool readyforyellowcircle = false, readyforpinkcircle=false, keyused = false, door3locked=true, door7locked=true;
     private bool readyforbluetriangle = false, readyforredsquare=false, readyforyellowsquare=false, readyfororangesquare=false;
     private bool roomisfinishedrotating=true, redplaced = false, orangeplaced = false, yellowplaced = false, playerjumped=false, dialogueremaining=false, playerhasupgrade=false;
-    public int playerjumppower = 1250;
+    public int playersustainedjumppower = 1250, playerstartingjumppower;
     public float moveX, moveY, ladderX, menumoveX, menumoveY, accelerationtime, decelerationtime, accelerationrate, decelerationrate;
     public bool isGrounded, ladderaccess, onladder, readytodismount, readyfordoor, onslope, needtostop;
     public float timeuntildismount = 0.12f, sensitivity;
-    private float leaveladdertimer = 0.0f, accelerationtimer=0.0f, decelerationtimer=0.0f, speedfactor, startingspeed, movespeedtimer, initialmovespeed;
-    Vector2 newposition, slopenormal, playermovedirection, spawningpoint, externalforce=new Vector2 (0,0);
+    private float jumptimecounter, leaveladdertimer = 0.0f, accelerationtimer=0.0f, decelerationtimer=0.0f, speedfactor, startingspeed, movespeedtimer, initialmovespeed;
+    Vector2 newposition, slopenormal, playermovedirection, spawningpoint, externalforce=new Vector2 (0,0), platformforce=new Vector2(0,0);
     private GameObject laddertop;
     public GameObject dialoguebox, door3spritelocked, door3spriteunlocked, door7spritelocked, door7spriteunlocked;
     public GameObject typewriterbox;
@@ -65,7 +66,7 @@ public class player_move : MonoBehaviour
         slopenormal = new Vector2(0, 1);
 
         //temporarily giving upgrade at launch for debugging. REMOVE THIS LINE LATER
-        playerhasupgrade = true;
+        //playerhasupgrade = true;
     }
 
     private void Awake()
@@ -76,13 +77,45 @@ public class player_move : MonoBehaviour
 
     }
 
+    //moved playermove to fixedupdate. move it back to regular update if this causes problems
+    //fixed update seems to make jump HEIGHT more consistent, but now player sometimes doesn't jump at all when button is press
+    //moving groundedupdater here too to see if that fixes it—--it doesn't
+    //gonna try keeping start of jump in update and jump sustain in fixedupdate
+    private void FixedUpdate()
+    {
+        //this came from void playermove
+        if (Input.GetKey(GameManager.GM.jump) && playerjumped == true)
+        {
+            if (jumptimecounter > 0)
+            {
+                GetComponent<Rigidbody2D>().AddForce(Vector2.up * playersustainedjumppower);
+                //Debug.Log(jumptimecounter);
+                jumptimecounter -= Time.deltaTime;
+            }
+            else
+            {
+                playerjumped = false;
+            }
+        }
+
+        if (Input.GetKeyUp(GameManager.GM.jump))
+        {
+            playerjumped = false;
+        }
+
+    }
 
     // Update is called once per frame
     void Update()
     {
-        
+        if (waitforcommand != true && waitfortext != true && isPaused == false)
+            PlayerMove();
+
+        GroundedUpdater();
+
         Debug.DrawLine(Vector3.zero, 32*playermovedirection, Color.red);
 
+        //this section stops the typewriter effect and shows the full text
         if (Input.GetKeyDown(GameManager.GM.check) && waitfortext == true && readytotalk==true)
             {
             TypeWriterEffect Typescript = typewriterbox.GetComponent<TypeWriterEffect>();
@@ -95,10 +128,7 @@ public class player_move : MonoBehaviour
             Debug.Log("ready invoked");
         }
 
-            if (waitforcommand != true && waitfortext != true && isPaused  == false)
-        PlayerMove();
 
-        GroundedUpdater();
 
         //turn off gravity while on slopes so player doesn't slide down
         if (onslope == true)
@@ -149,6 +179,8 @@ public class player_move : MonoBehaviour
             dialoguepagenumber = 3;
             //waitforcommand = true; let's try having this false
             readytotalk = false;
+            Debug.Log("readytotalk=" + readytotalk + " dialoguepagenumber=" + dialoguepagenumber + " dialogueremaining=" + dialogueremaining + " waitfortext=" + waitfortext);
+
             Invoke("talkcooldown", 0.4f);
         }
 
@@ -165,6 +197,9 @@ public class player_move : MonoBehaviour
             readytotalk = false;
             dialogueremaining = false;
             dialoguepagenumber = 0;
+
+            Debug.Log("readytotalk=" + readytotalk + " dialoguepagenumber=" + dialoguepagenumber + " dialogueremaining=" + dialogueremaining + " waitfortext=" + waitfortext);
+
             Invoke("talkcooldown", 0.4f);
         }
 
@@ -199,16 +234,18 @@ public class player_move : MonoBehaviour
             if (upgradeison)
             {
                 upgradeison = false;
+                GameManager.GM.playerusingupgrade = false;
                 Debug.Log("upgrade turned off");
 
                 //for color-coded dungeon or tractor beams, move player back to default layer
-                gameObject.layer = 0;
+                gameObject.layer = 13;
             }
             else
             {
                 upgradeison = true;
+                GameManager.GM.playerusingupgrade = true;
                 Debug.Log("upgrade turned on");
-
+                
                 //for colorcoded dungeon, move player to new layer that interacts with intangible layer
                 //in tractor beam dungeon, this is a layer that does NOT interact with tractor beams
                 gameObject.layer = 10;
@@ -244,9 +281,9 @@ public class player_move : MonoBehaviour
 
     IEnumerator rotateroom1clockwise()
     {
-        for (int i = 0; i <= 90; i++)
+        for (int i = 0; i <= 60; i++)
         {
-            gravityroom1.transform.eulerAngles = new Vector3(0, 0, -i);
+            gravityroom1.transform.eulerAngles = new Vector3(0, 0, -1.5f*i);
             yield return new WaitForSeconds(0.0004f);
         }
         roomstate = 2;
@@ -258,9 +295,9 @@ public class player_move : MonoBehaviour
 
     IEnumerator rotateroom1counterclockwise()
     {
-        for (int i = 0; i <= 90; i++)
+        for (int i = 0; i <= 60; i++)
         {
-            gravityroom1.transform.eulerAngles = new Vector3(0, 0, i-90);
+            gravityroom1.transform.eulerAngles = new Vector3(0, 0, 1.5f*i-90);
             yield return new WaitForSeconds(0.0004f);
         }
         roomstate = 1;
@@ -379,8 +416,9 @@ public class player_move : MonoBehaviour
 
     void ready()
     {
-        //Debug.Log("ready");
-        Time.timeScale = 0;
+        //don't freeze game if there's more dialogue coming
+        if(dialogueremaining==false)
+            Time.timeScale = 0;
         waitfortext = false;
         waitforcommand = true;
     }
@@ -400,6 +438,8 @@ public class player_move : MonoBehaviour
         
         // can only jump if grounded
         if (Input.GetKeyDown(GameManager.GM.jump) && isGrounded == true) { jump(); }
+
+
 
         // used to like idea of jumping off of ladder. now I don't.
         //if (Input.GetKeyDown(GameManager.GM.jump) && onladder == true && moveX !=0) { jump(); }
@@ -543,8 +583,11 @@ public class player_move : MonoBehaviour
         if (onladder != true)
         {
             //if you recently jumped or are not on a slope, use 'normal' movemennt
-            if(onslope!=true || playerjumped==true)
+            if(onslope!=true || playerjumped==true && moveX!=0)
                 gameObject.GetComponent<Rigidbody2D>().velocity = new Vector2(speedfactor * playerspeed, gameObject.GetComponent<Rigidbody2D>().velocity.y) + externalforce;
+
+            if (moveX == 0)
+                gameObject.GetComponent<Rigidbody2D>().velocity = new Vector2(gameObject.GetComponentInParent<Rigidbody2D>().velocity.x, gameObject.GetComponent<Rigidbody2D>().velocity.y) + externalforce + platformforce;
         }
         
         //this code attempts to correct velocity path on slopes
@@ -716,8 +759,17 @@ public class player_move : MonoBehaviour
 
     void OnTriggerEnter2D(Collider2D trig)
     {
+        if (trig.gameObject.tag == "Hazard")
+        {
+            GameManager.GM.lives = GameManager.GM.lives - 1;
+            if (GameManager.GM.lives == 0)
+            { SceneManager.LoadScene("funhousetitlescreen"); }
+            transform.position = spawningpoint;
+        }
+
+
         //updates spawnpoint as you play
-        if(trig.tag == "spawn")
+        if (trig.tag == "spawn")
         {
             spawningpoint = trig.transform.position;
         }
@@ -767,16 +819,18 @@ public class player_move : MonoBehaviour
 
     void OnTriggerStay2D(Collider2D trig)
     {
-        if (trig.name == "Room2" && upgradeison==false)
-        {
-            playerspeed = initialmovespeed / 2;
-        }
+        //this was gonna be for weird move speed, but not gonna use that feature
+        //if (trig.name == "Room2" && upgradeison==false)
+        //{
+        //    playerspeed = initialmovespeed / 2;
+        //}
 
-        if (trig.name == "Room3" && upgradeison == false)
-        {
-            movespeedtimer += Time.deltaTime;
-            playerspeed = initialmovespeed * (Mathf.Sin(movespeedtimer*2.5f)+1);
-        }
+        //this was also gonna be for weird move speed, but not gonna use that feature
+        //if (trig.name == "Room3" && upgradeison == false)
+        //{
+        //    movespeedtimer += Time.deltaTime;
+        //    playerspeed = initialmovespeed * (Mathf.Sin(movespeedtimer*2.5f)+1);
+        //}
 
         if (trig.name == "Room14")
         {
@@ -786,6 +840,11 @@ public class player_move : MonoBehaviour
         if (trig.name == "tractorbeamthatpullsleft")
         {
             externalforce = new Vector2 (-100, 0);
+        }
+
+        if (trig.name == "movingplatformtrigger")
+        {
+            platformforce = trig.GetComponentInParent<Rigidbody2D>().velocity;
         }
 
         //if player is in door's trig zone
@@ -1078,6 +1137,9 @@ public class player_move : MonoBehaviour
                 waitfortext = true;
                 //Debug.Log("wait for text =" + waitfortext);
                 Invoke("talkcooldown", 0.2f);
+
+                Debug.Log("readytotalk=" + readytotalk + " dialoguepagenumber=" + dialoguepagenumber + " dialogueremaining=" + dialogueremaining + " waitfortext=" + waitfortext);
+
             }
     }
         if (trig.name == "personthatprovidesupgrade" && playerhasupgrade == true)
@@ -1098,10 +1160,10 @@ public class player_move : MonoBehaviour
 
     void OnTriggerExit2D(Collider2D trig)
     {
-        if (trig.name == "Room2")
-        {
-            playerspeed = initialmovespeed;
-        }
+        //if (trig.name == "Room2")
+        //{
+        //    playerspeed = initialmovespeed;
+        //}
 
         if (trig.name == "Room14")
         {
@@ -1111,6 +1173,11 @@ public class player_move : MonoBehaviour
         if (trig.name == "tractorbeamthatpullsleft")
         {
             externalforce = new Vector2(0, 0);
+        }
+
+        if (trig.name == "movingplatformtrigger")
+        {
+            platformforce = new Vector2 (0,0);
         }
 
         //if player exits ladder's trig zone
@@ -1303,20 +1370,20 @@ public class player_move : MonoBehaviour
 
     void jump()
     {
+        //note jump power was originally 20550
+
         //playerjumped bool is needed so jump physics work when you jump from a slope
         playerjumped = true;
+
+        jumptimecounter = jumptime;
+
         //set vertical velocity to zero before applying jumping power so player can't jump extra high from slopes
         gameObject.GetComponent<Rigidbody2D>().velocity = new Vector2(gameObject.GetComponent<Rigidbody2D>().velocity.x, 0);
 
         //jumpingcode
-        GetComponent<Rigidbody2D>().AddForce(Vector2.up * playerjumppower);
-        Invoke("playerjumpedfalse", 0.2f);
+        GetComponent<Rigidbody2D>().AddForce(Vector2.up * playerstartingjumppower);
     }
 
-    void playerjumpedfalse()
-    {
-        playerjumped = false;
-    }
 
     void FlipPlayer()
     {

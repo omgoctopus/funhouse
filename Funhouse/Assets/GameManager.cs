@@ -21,6 +21,7 @@ public class GameManager : MonoBehaviour
     public string Horizontal = "Horizontal";
     public string Vertical = "Vertical";
     public int levelnumber = 1, lives=3;
+    public bool playerusingupgrade = false;
 
 
 
