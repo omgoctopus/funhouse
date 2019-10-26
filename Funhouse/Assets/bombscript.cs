@@ -74,7 +74,8 @@ public class bombscript : MonoBehaviour
             //Debug.Log("left miss");
         }
 
-        //old script. mostly works, but bounces off inanimate statue
+        //old script: 
+        //mostly works, but bounces off inanimate statue
         // you can increase RaycastLength and adjust direction for your case
         //foreach (var hitedL in hitL)
         //{
