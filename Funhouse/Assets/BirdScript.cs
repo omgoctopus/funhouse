@@ -89,7 +89,7 @@ public class BirdScript : MonoBehaviour
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
-        if (collision.gameObject.tag == "Hazard")
+        if (collision.gameObject.tag == "Hazard" && birdhaslaunched!=true)
         {
             Destroy(this.gameObject);
         }
@@ -97,7 +97,7 @@ public class BirdScript : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        if (collision.gameObject.tag == "Hazard")
+        if (collision.gameObject.tag == "Hazard" && birdhaslaunched!=true)
         {
             Destroy(this.gameObject);
         }

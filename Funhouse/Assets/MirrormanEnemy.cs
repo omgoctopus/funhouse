@@ -61,6 +61,7 @@ public class MirrormanEnemy : MonoBehaviour
 
         if (playerisinrange == true)
         {
+            GroundedUpdater();
             mirrormanmovement(); }
 
         //turn off gravity while on slopes so mirrorman doesn't slide down
