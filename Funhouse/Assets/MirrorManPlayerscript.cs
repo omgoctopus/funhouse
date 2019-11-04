@@ -35,7 +35,7 @@ public class MirrorManPlayerscript : MonoBehaviour
             mirrormanparent = trig.transform.parent.gameObject;
             mirrormanbody = mirrormanparent.transform.GetChild(1).gameObject;
             MirrormanEnemy mirrormanscript = mirrormanbody.GetComponent<MirrormanEnemy>();
-            mirrormanscript.playerisinrange = true;
+            mirrormanscript.playerisinrange = false;
             mirrormanscript.needtoresetposition = true;
         }
     }
