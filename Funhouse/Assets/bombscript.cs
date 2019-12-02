@@ -5,7 +5,7 @@ using UnityEngine;
 public class bombscript : MonoBehaviour
 {
     public float explosiontimer, changedirectiontimer, movespeed;
-    private float explodetimeremaining, timetildirectionchange;
+    private float explodetimeremaining, timetildirectionchange, size; //"size" is size of explosion
     private int movecheck, movedirection;
     private bool isexploding = false, needtoflipL, needtoflipR, readytoflip=true, grounded=true;
     private GameObject explosion, body;
@@ -34,8 +34,8 @@ public class bombscript : MonoBehaviour
         //timers
         explodetimeremaining -= Time.deltaTime;
         timetildirectionchange -= Time.deltaTime;
-        if (explodetimeremaining <= 0)
-            explode();
+        if (explodetimeremaining <= 0 && isexploding != true)
+            StartCoroutine(explode()); ;
         if (timetildirectionchange <= 0)
             randomdirectionchange();
 
@@ -50,8 +50,22 @@ public class bombscript : MonoBehaviour
         ledgecheck();
     }
 
-    void explode()
+    //make this coroutine instead for more control over the explosion
+    //void explode()
+    //{
+    //    isexploding = true;
+    //    gameObject.GetComponent<Rigidbody2D>().isKinematic = true;
+    //    transform.gameObject.tag = "Hazard";
+    //    explosion.gameObject.SetActive(true);
+    //    body.gameObject.SetActive(false);
+    //    gameObject.GetComponent<Rigidbody2D>().velocity = new Vector2(0,0);
+    //    Destroy(this.gameObject,0.5f);
+    //}
+
+    IEnumerator explode()
     {
+        size = 0;
+        explosion.GetComponent<CircleCollider2D>().radius = 0;
         isexploding = true;
         gameObject.GetComponent<Rigidbody2D>().isKinematic = true;
         transform.gameObject.tag = "Hazard";
@@ -59,9 +73,26 @@ public class bombscript : MonoBehaviour
         body.gameObject.SetActive(false);
         gameObject.GetComponent<Rigidbody2D>().velocity = new Vector2(0,0);
         Destroy(this.gameObject,0.5f);
+        for (int i = 0; i <= 60; i++)
+        {
+            if (size < 0.45f)
+            {
+                size = size + 0.056f;
+                explosion.GetComponent<CircleCollider2D>().radius = size;
+                yield return new WaitForSeconds(0.016666667f);
+            }
+            if (size >= 0.5f)
+            {
+                size = 0.5f;
+                explosion.GetComponent<CircleCollider2D>().radius = size;
+
+            }
+        }
+
+        yield break;
     }
 
-    void ledgecheck()
+        void ledgecheck()
     {
         //old script mostly works but bounces of inanimate statue
         //RaycastHit2D[] hitL;

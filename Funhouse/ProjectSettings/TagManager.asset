@@ -15,6 +15,7 @@ TagManager:
   - slope
   - Hazard
   - spawn
+  - pushable
   layers:
   - Default
   - TransparentFX

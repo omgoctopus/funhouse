@@ -14,7 +14,7 @@ public class player_move : MonoBehaviour
     private bool roomisfinishedrotating=true, redplaced = false, orangeplaced = false, yellowplaced = false, playerjumped=false, dialogueremaining=false, playerhasupgrade=false;
     public int playersustainedjumppower = 1250, playerstartingjumppower;
     public float moveX, moveY, ladderX, menumoveX, menumoveY, accelerationtime, decelerationtime, accelerationrate, decelerationrate;
-    public bool isGrounded, ladderaccess, onladder, readytodismount, readyfordoor, onslope, needtostop;
+    public bool isGrounded, ladderaccess, onladder, readytodismount, readyfordoor, onslope, needtostop, playerispushingsomething=false;
     public float timeuntildismount = 0.12f, sensitivity;
     private float jumptimecounter, leaveladdertimer = 0.0f, accelerationtimer=0.0f, decelerationtimer=0.0f, speedfactor, startingspeed, movespeedtimer, initialmovespeed;
     Vector2 newposition, slopenormal, playermovedirection, spawningpoint, externalforce=new Vector2 (0,0), platformforce=new Vector2(0,0);
@@ -32,6 +32,7 @@ public class player_move : MonoBehaviour
     private string itemname;
     private List<int> cursorlocation = new List<int>();
     private int currentposition, j, dialoguepagenumber, strangegravityeffects=0, roomstate=1;
+    public Animator animator;
 
     // level item menu icons
     public GameObject inventorycursor;
@@ -41,6 +42,7 @@ public class player_move : MonoBehaviour
 
     // gravity rooms
     public GameObject gravityroom1;
+
 
 
     void Start()
@@ -203,6 +205,47 @@ public class player_move : MonoBehaviour
             Invoke("talkcooldown", 0.4f);
         }
 
+        //ANIMATION
+        //playerstate 1: idle
+        //playerstate 2: duck
+        //playerstate 3: walk
+        //playerstate 4: push
+        //playerstate 5: climbing
+        //playerstate 6: enter door
+        //playerstate 7: jumping
+        //playerstate 8: falling
+        //disable animator for ladder idle
+
+        if (isGrounded==true && onladder==false && moveX == 0)
+        {
+            animator.SetInteger("playerstate", 1);
+        }
+        if(isGrounded==true && onladder==false && moveX != 0 && playerispushingsomething==false)
+        {
+            animator.SetInteger("playerstate", 3);
+        }
+        if (playerispushingsomething == true && moveX != 0)
+        {
+            animator.SetInteger("playerstate", 4);
+        }
+        if(onladder==true && moveY != 0)
+        {
+            animator.enabled = true;
+            animator.SetInteger("playerstate", 5);
+        }
+        if(isGrounded==false && onladder==false && gameObject.GetComponent<Rigidbody2D>().velocity.y >= 0)
+        {
+            animator.SetInteger("playerstate", 7);
+        }
+        if (isGrounded == false && onladder == false && gameObject.GetComponent<Rigidbody2D>().velocity.y >= 0)
+        {
+            animator.SetInteger("playerstate", 8);
+        }
+        if (onladder == true && moveY == 0)
+        { animator.enabled = false; }
+        if (onladder == false) { animator.enabled = true; }
+
+        //END ANIMATION
 
     }
 
@@ -600,7 +643,7 @@ public class player_move : MonoBehaviour
         //add idle movement to wakeup physics engine for ontriggerstay
         if (onladder!=true && gameObject.GetComponent<Rigidbody2D>().velocity==new Vector2(0,0))
         {
-            GetComponent<Rigidbody2D>().AddForce(Vector2.up * .01f);
+            GetComponent<Rigidbody2D>().AddForce(Vector2.up * .01f);           
         }
 
         //ladder movement
@@ -1356,6 +1399,10 @@ public class player_move : MonoBehaviour
                 slopenormal = cp2d.normal;
             }
         }
+        if (collision.gameObject.tag == "pushable" || collision.gameObject.name == "pushable block")
+        {
+            playerispushingsomething = true;
+        }
     }
 
     private void OnCollisionExit2D(Collision2D collision)
@@ -1364,6 +1411,10 @@ public class player_move : MonoBehaviour
         if (collision.gameObject.layer == 8)
         {
             slopenormal = new Vector2(0, 1);
+        }
+        if (collision.gameObject.tag == "pushable" || collision.gameObject.name == "pushable block")
+        {
+            playerispushingsomething = false;
         }
     }
 
@@ -1393,6 +1444,8 @@ public class player_move : MonoBehaviour
         transform.localScale = localscale;
 
     }
+
+
     void YellowCircle()
     {
         Debug.Log("ran void YellowCircle");

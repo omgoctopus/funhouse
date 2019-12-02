@@ -40,12 +40,15 @@ public class WizardEnemyScript : MonoBehaviour
 
     void swap()
     {
-        wizardposition = transform.position;
-        player = GameObject.FindGameObjectWithTag("Player");
-        playerposition = player.transform.position;
-        needtoswap = true;
-        transform.position = playerposition;
-        timer = teleporttimer;
+        if (playerisinrange == true)
+        {
+            wizardposition = transform.position;
+            player = GameObject.FindGameObjectWithTag("Player");
+            playerposition = player.transform.position;
+            needtoswap = true;
+            transform.position = playerposition;
+            timer = teleporttimer;
+        }
     }
 
     private void OnCollisionEnter2D(Collision2D collision)

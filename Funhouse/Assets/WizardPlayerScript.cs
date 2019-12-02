@@ -35,7 +35,7 @@ public class WizardPlayerScript : MonoBehaviour
     }
     void OnTriggerExit2D(Collider2D trig)
     {
-        if (trig.name == "Mirrormantrigger")
+        if (trig.name == "WizardTrigger")
         {
             wizardparent = trig.transform.parent.gameObject;
             wizardbody = wizardparent.transform.GetChild(1).gameObject;
